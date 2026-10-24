@@ -1,0 +1,26 @@
+name: Daily trend rule
+on:
+  schedule:
+    - cron: "17 0 * * *"
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install requests
+      - run: python check-rule.py
+        env:
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+      - name: Save results
+        run: |
+          git config user.name "rule-bot"
+          git config user.email "rule-bot@users.noreply.github.com"
+          git add data/rule_log.json
+          git commit -m "Daily rule check" || echo "nothing to save"
+          git push
