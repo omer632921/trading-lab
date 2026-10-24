@@ -1,0 +1,26 @@
+[
+ {
+  "ts": "2026-10-24T18:27:00+00:00",
+  "coin": "Bitcoin",
+  "state": "OUT",
+  "price": 81086.2,
+  "avg50": 81777.05,
+  "changed": false
+ },
+ {
+  "ts": "2026-10-24T18:27:00+00:00",
+  "coin": "Ethereum",
+  "state": "OUT",
+  "price": 2384.52,
+  "avg50": 2548.34,
+  "changed": false
+ },
+ {
+  "ts": "2026-10-24T18:27:00+00:00",
+  "coin": "Solana",
+  "state": "OUT",
+  "price": 102.71,
+  "avg50": 109.62,
+  "changed": false
+ }
+]
