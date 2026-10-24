@@ -52,12 +52,18 @@ svg{width:100%;height:50px;display:block}
   <div class="g" id="rule"></div>
   <p class="sub" id="rulenote"></p>
   <div class="c tb" id="hist"></div>
+  <h2>Paper account (pretend money)</h2>
+  <div class="g" id="pa"></div>
+  <div class="c" id="eq" style="margin-top:10px"></div>
+  <div class="c tb" id="trades" style="margin-top:10px"></div>
+  <p class="sub">The robot splits $10,000 of pretend money across Bitcoin, Ethereum and Solana, buys a coin when the rule says IN and sells when it says OUT, with a 0.1% fee per trade. Values update live from current prices. Buy and hold means buying the same coins on day one and never selling. Pretend money only, not advice.</p>
   <p class="sub">The robot on GitHub checks the rule once a day at 00:17 UTC. IN means the daily close is above its 50-day average. This rule has not been proven on new data.</p>
 </div>
 <script>
 var MAJOR=["BTC","ETH","SOL","AVAX"],MEME=["DOGE","SHIB","PEPE","BONK"],WANT=MAJOR.concat(MEME);
 var API="https://api.kraken.com/0/public/";
-var ALT={},BYKEY={},LIVE={},PREV={},CANDLES={},RULE=[],lastTick=null,fails=0;
+var ALT={},BYKEY={},LIVE={},PREV={},CANDLES={},RULE=[],PAPER=null,lastTick=null,fails=0;
+var SYM={Bitcoin:"BTC",Ethereum:"ETH",Solana:"SOL"};
 function $(id){return document.getElementById(id);}
 function money(x){if(x>=1)return "$"+x.toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2});if(x>=0.01)return "$"+x.toFixed(4);return "$"+x.toFixed(8);}
 function col(x){return x>=0?"up":"dn";}
@@ -112,6 +118,7 @@ function render(){
     stat("Last price update",lastTick?lastTick.toISOString().slice(11,19)+" UTC":"-","Exact time of the latest reading");
   $("major").innerHTML=MAJOR.map(function(s){return card(s);}).join("");
   $("meme").innerHTML=MEME.map(function(s){return card(s,'<span class="tag">high risk</span>');}).join("");
+  renderPaper();
 }
 function renderRule(){
   var by=latestRule(),names=Object.keys(by);
@@ -126,6 +133,48 @@ function renderRule(){
     rows+='<div class="r"><div>'+e.ts.replace("T"," ").slice(0,16)+'</div><div>'+e.coin+'</div><div class="'+(e.state==="IN"?"up":"")+'">'+e.state+'</div><div>'+money(e.price)+'</div><div class="'+(e.changed?"up":"")+'">'+(e.changed?"yes":"no")+'</div></div>';
   });
   $("hist").innerHTML=rows;
+}
+function renderPaper(){
+  if(!PAPER){
+    $("pa").innerHTML='<div class="c s">No paper account yet. It starts after the GitHub robot runs with the new script.</div>';
+    $("eq").innerHTML="";$("trades").innerHTML="";return;
+  }
+  var names=Object.keys(PAPER.slots),n=names.length,slot0=PAPER.start_cash/n,fee=PAPER.fee,pv=0,hv=0,open=0,ok=true;
+  names.forEach(function(nm){
+    var s=PAPER.slots[nm],d=LIVE[SYM[nm]];
+    if(!d){ok=false;return;}
+    pv+=s.cash+s.units*d.p;hv+=slot0/s.start_px*(1-fee)*d.p;if(s.units>0)open++;
+  });
+  if(!ok){$("pa").innerHTML='<div class="c s">Waiting for live prices...</div>';return;}
+  var pr=(pv/PAPER.start_cash-1)*100,hr=(hv/PAPER.start_cash-1)*100,diff=pr-hr;
+  $("pa").innerHTML=
+    stat("Paper account",money(pv),pct(pr)+" since "+PAPER.start.slice(0,10),col(pr))+
+    stat("Buy and hold (same coins)",money(hv),pct(hr)+" since start",col(hr))+
+    stat("Rule vs buy and hold",pct(diff),diff>=0?"Rule is ahead":"Rule is behind",col(diff))+
+    stat("Open positions",open+" of "+n,PAPER.trades.length+" trades so far");
+  var pts=PAPER.equity.slice(-120);
+  if(pts.length<2){
+    $("eq").innerHTML='<div class="s">The value chart appears once there are two days of data.</div>';
+  }else{
+    var all=[];pts.forEach(function(p){all.push(p.paper,p.hold);});
+    var lo=Math.min.apply(null,all),hi=Math.max.apply(null,all),rg=(hi-lo)||1;
+    var line=function(k,c){return '<polyline fill="none" stroke="'+c+'" stroke-width="2" points="'+pts.map(function(p,i){return (i/(pts.length-1)*300).toFixed(1)+","+(70-(p[k]-lo)/rg*64).toFixed(1);}).join(" ")+'"/>';};
+    $("eq").innerHTML='<div class="s">Account value by day: <span class="up">paper rule</span> vs <span>buy and hold (grey)</span></div><svg viewBox="0 0 300 76" preserveAspectRatio="none" style="height:90px">'+line("hold","#8a93a8")+line("paper","#3ddc97")+'</svg>';
+  }
+  var rows='<div class="r h"><div>Time (UTC)</div><div>Coin</div><div>Side</div><div>Price</div><div>Value</div></div>';
+  if(!PAPER.trades.length){
+    rows+='<div class="s" style="padding:10px 6px">No trades yet. All coins are OUT, so the account is holding cash.</div>';
+  }else{
+    PAPER.trades.slice(-10).reverse().forEach(function(t){
+      rows+='<div class="r"><div>'+t.ts.replace("T"," ").slice(0,16)+'</div><div>'+t.coin+'</div><div class="'+(t.side==="BUY"?"up":"dn")+'">'+t.side+'</div><div>'+money(t.price)+'</div><div>'+money(t.value)+'</div></div>';
+    });
+  }
+  $("trades").innerHTML=rows;
+}
+function loadPaper(){
+  fetch("data/paper.json?"+Date.now()).then(function(r){return r.json();}).then(function(j){PAPER=j;renderPaper();})
+  .catch(function(){renderPaper();});
+  setTimeout(loadPaper,600000);
 }
 function loadRule(){
   fetch("data/rule_log.json?"+Date.now()).then(function(r){return r.json();}).then(function(j){RULE=j;renderRule();render();})
@@ -167,7 +216,7 @@ function init(){
     pollLive();pollCandles();
   }).catch(function(e){setStatus(false,"Cannot reach Kraken: "+e.message);});
 }
-clock();setInterval(clock,1000);loadRule();init();
+clock();setInterval(clock,1000);loadRule();loadPaper();init();
 </script>
 </body>
 </html>
