@@ -1,0 +1,25 @@
+name: Stock prices
+on:
+  schedule:
+    - cron: "7,37 13-21 * * 1-5"
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install yfinance
+      - run: python stocks.py
+      - name: Save results
+        run: |
+          git config user.name "stock-bot"
+          git config user.email "stock-bot@users.noreply.github.com"
+          git add data/stocks.json
+          git commit -m "Update stock prices" || echo "nothing to save"
+          git pull --rebase
+          git push
