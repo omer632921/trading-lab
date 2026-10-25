@@ -58,11 +58,15 @@ svg{width:100%;height:50px;display:block}
   <div class="c tb" id="trades" style="margin-top:10px"></div>
   <p class="sub">The robot splits $10,000 of pretend money across Bitcoin, Ethereum and Solana, buys a coin when the rule says IN and sells when it says OUT, with a 0.1% fee per trade. Values update live from current prices. Buy and hold means buying the same coins on day one and never selling. Pretend money only, not advice.</p>
   <p class="sub">The robot on GitHub checks the rule once a day at 00:17 UTC. IN means the daily close is above its 50-day average. This rule has not been proven on new data.</p>
+  <h2>Minute signal experiment <span class="sub">(from your Colab journal)</span></h2>
+  <div class="g" id="jn"></div>
+  <div class="c tb" id="jt" style="margin-top:10px"></div>
+  <p class="sub" id="jnote"></p>
 </div>
 <script>
 var MAJOR=["BTC","ETH","SOL","AVAX"],MEME=["DOGE","SHIB","PEPE","BONK"],WANT=MAJOR.concat(MEME);
 var API="https://api.kraken.com/0/public/";
-var ALT={},BYKEY={},LIVE={},PREV={},CANDLES={},RULE=[],PAPER=null,lastTick=null,fails=0;
+var ALT={},BYKEY={},LIVE={},PREV={},CANDLES={},RULE=[],PAPER=null,JOURNAL=null,lastTick=null,fails=0;
 var SYM={Bitcoin:"BTC",Ethereum:"ETH",Solana:"SOL"};
 function $(id){return document.getElementById(id);}
 function money(x){if(x>=1)return "$"+x.toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2});if(x>=0.01)return "$"+x.toFixed(4);return "$"+x.toFixed(8);}
@@ -171,6 +175,30 @@ function renderPaper(){
   }
   $("trades").innerHTML=rows;
 }
+function renderJournal(){
+  var j=JOURNAL;
+  if(!j){$("jn").innerHTML='<div class="c s">No journal data yet.</div>';$("jt").innerHTML="";return;}
+  var c=j.counts||{},bc=j.by_confidence||{};
+  function hr(x){return (x===null||x===undefined)?"-":x.toFixed(1)+"%";}
+  var lo=bc.low||{},me=bc.medium||{};
+  $("jn").innerHTML=
+    stat("Alerts logged",String(j.total),"Pending: "+(c.pending||0)+", flat: "+(c.flat||0))+
+    stat("Hit rate",hr(j.hit_rate),j.decided+" decided alerts. 50% is a coin flip")+
+    stat("Low confidence",hr(lo.hit_rate),(lo.decided||0)+" decided")+
+    stat("Medium confidence",hr(me.hit_rate),(me.decided||0)+" decided");
+  var rows='<div class="r h"><div>Time (UTC)</div><div>Direction</div><div>Score</div><div>Confidence</div><div>Result</div></div>';
+  (j.recent||[]).slice(0,12).forEach(function(e){
+    var rc=e.correct==="yes"?"up":e.correct==="no"?"dn":"";
+    rows+='<div class="r"><div>'+String(e.ts).replace("T"," ").slice(0,16)+'</div><div class="'+(e.direction==="UP"?"up":"dn")+'">'+e.direction+'</div><div>'+Number(e.score).toFixed(2)+'</div><div>'+e.confidence+'</div><div class="'+rc+'">'+(e.correct||"-")+'</div></div>';
+  });
+  $("jt").innerHTML=rows;
+  $("jnote").textContent="Snapshot saved "+String(j.updated).replace("T"," ").slice(0,16)+" UTC. This is the minute-by-minute signal from Colab. It only updates when the snapshot cell is run again, and its results look like a coin flip.";
+}
+function loadJournal(){
+  fetch("data/journal.json?"+Date.now()).then(function(r){return r.json();}).then(function(j){JOURNAL=j;renderJournal();})
+  .catch(function(){renderJournal();});
+  setTimeout(loadJournal,600000);
+}
 function loadPaper(){
   fetch("data/paper.json?"+Date.now()).then(function(r){return r.json();}).then(function(j){PAPER=j;renderPaper();})
   .catch(function(){renderPaper();});
@@ -216,7 +244,7 @@ function init(){
     pollLive();pollCandles();
   }).catch(function(e){setStatus(false,"Cannot reach Kraken: "+e.message);});
 }
-clock();setInterval(clock,1000);loadRule();loadPaper();init();
+clock();setInterval(clock,1000);loadRule();loadPaper();loadJournal();init();
 </script>
 </body>
 </html>
