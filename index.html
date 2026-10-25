@@ -31,6 +31,22 @@ svg{width:100%;height:50px;display:block}
 .tb{overflow-x:auto}
 .r{display:grid;grid-template-columns:2.2fr 1.2fr .8fr 1.4fr 1fr;gap:8px;padding:8px 6px;border-bottom:1px solid var(--line);font-size:13px;min-width:460px;font-variant-numeric:tabular-nums}
 .r.h{color:var(--mut)}
+.nav,.tabs{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
+.nav button,.tabs button{font:inherit;font-size:14px;color:var(--mut);background:var(--card);border:1px solid var(--line);border-radius:99px;padding:7px 16px;cursor:pointer}
+.nav button.on,.tabs button.on{color:var(--text);border-color:#3b6fd6;background:#17233f}
+.nav button:focus-visible,.tabs button:focus-visible,#more:focus-visible,#q:focus-visible{outline:2px solid #6ea0ff;outline-offset:2px}
+.ctl{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin:6px 0}
+#q{font:inherit;font-size:14px;color:var(--text);background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px 12px;min-width:220px}
+.ctl label{color:var(--mut);font-size:13px}
+.st{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums;min-width:680px}
+.st th{color:var(--mut);font-weight:500;text-align:left;padding:8px 6px;border-bottom:1px solid var(--line);cursor:pointer;white-space:nowrap;user-select:none}
+.st th:hover{color:var(--text)}
+.st td{padding:8px 6px;border-bottom:1px solid var(--line);vertical-align:top}
+.st a{color:#8fb4ff}
+.chip{font-size:11px;padding:1px 8px;border-radius:99px;border:1px solid var(--line);white-space:nowrap}
+.chip.up{color:var(--up);border-color:#25624a}.chip.dn{color:var(--dn);border-color:#6a2b35}.chip.mid{color:var(--warn);border-color:#5a4a22}
+#more{font:inherit;font-size:14px;color:var(--text);background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px 16px;margin:10px 0;cursor:pointer}
+[hidden]{display:none!important}
 </style>
 </head>
 <body>
@@ -40,6 +56,8 @@ svg{width:100%;height:50px;display:block}
     <div class="clock"><span class="dot" id="dot"></span><span id="status">Connecting...</span><br><span id="utc"></span> UTC | <span id="uk"></span> UK</div>
   </div>
   <div class="tk" id="tk"></div>
+  <div class="nav"><button id="nb-dash" class="on">Dashboard</button><button id="nb-scan">Scanner</button></div>
+  <div id="view-dash">
   <div class="nt">Live prices from Kraken. Paper trading only. This is not financial advice.</div>
   <h1>Overview</h1>
   <div class="sub" id="today"></div>
@@ -67,6 +85,19 @@ svg{width:100%;height:50px;display:block}
   <div class="g" id="jn"></div>
   <div class="c tb" id="jt" style="margin-top:10px"></div>
   <p class="sub" id="jnote"></p>
+  </div>
+  <div id="view-scan" hidden>
+    <h1>Scanner</h1>
+    <div class="nt">Ranked by recent trend strength, not by what will go up next. Nobody can know that, and in our tests trend rules did not beat buy and hold since 2023. Updated once a day. Not financial advice.</div>
+    <h2>Scoreboard <span class="sub">(did the top picks actually do better?)</span></h2>
+    <div class="g" id="sb"></div>
+    <p class="sub" id="sbnote"></p>
+    <div class="tabs" id="tabs"><button data-t="crypto" class="on">Crypto</button><button data-t="stocks">Stocks (S&amp;P 500)</button><button data-t="tokens">New tokens</button></div>
+    <div class="ctl"><input id="q" type="search" placeholder="Search name or symbol" aria-label="Search"><label><input type="checkbox" id="upo"> <span id="upol">Uptrend only</span></label></div>
+    <p class="sub" id="scnote"></p>
+    <div class="c tb"><table class="st" id="stbl"></table></div>
+    <button id="more" hidden>Show more</button>
+  </div>
 </div>
 <script>
 var MAJOR=["BTC","ETH","SOL","AVAX"],MEME=["DOGE","SHIB","PEPE","BONK"],WANT=MAJOR.concat(MEME);
@@ -305,7 +336,108 @@ function init(){
     pollLive();pollCandles();
   }).catch(function(e){setStatus(false,"Cannot reach Kraken: "+e.message);});
 }
-clock();setInterval(clock,1000);loadRule();loadPaper();loadJournal();loadStocks();init();
+/* ---------- Scanner ---------- */
+var SCAN=null,TAB="crypto",SHOWN=60,SORT={crypto:["score",-1],stocks:["score",-1],tokens:["_i",1]};
+function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];});}
+function usd(n){n=Number(n)||0;if(n>=1e9)return "$"+(n/1e9).toFixed(1)+"B";if(n>=1e6)return "$"+(n/1e6).toFixed(1)+"M";if(n>=1e3)return "$"+Math.round(n/1e3)+"k";return "$"+Math.round(n);}
+function ch(x){if(x==null||isNaN(x))return '<span class="s">-</span>';return '<span class="'+col(x)+'">'+pct(Number(x))+'</span>';}
+function chip(t){var c=t==="Up"||t==="PASS"?"up":t==="Down"||t==="FAIL"?"dn":"mid";return '<span class="chip '+c+'">'+esc(t)+'</span>';}
+function age(h){if(h==null)return "-";return h<48?Math.round(h)+"h":Math.round(h/24)+"d";}
+var COLS={
+ crypto:[{h:"Coin",k:"name",f:function(r){return '<b>'+esc(r.symbol)+'</b> <span class="s">'+esc(r.name)+'</span>';}},
+  {h:"Price",k:"price",f:function(r){return money(r.price);}},{h:"24h",k:"ch24",f:function(r){return ch(r.ch24);}},
+  {h:"7d",k:"ch7",f:function(r){return ch(r.ch7);}},{h:"30d",k:"ch30",f:function(r){return ch(r.ch30);}},
+  {h:"Trend",k:"trend",f:function(r){return chip(r.trend);}},{h:"Score",k:"score",f:function(r){return r.score;}},
+  {h:"Note",k:"flag",f:function(r){return '<span class="s">'+esc(r.flag)+'</span>';}}],
+ stocks:[{h:"Stock",k:"name",f:function(r){return '<b>'+esc(r.symbol)+'</b> <span class="s">'+esc(r.name)+'</span>';}},
+  {h:"Price",k:"price",f:function(r){return money(r.price);}},{h:"1d",k:"ch1",f:function(r){return ch(r.ch1);}},
+  {h:"20d",k:"r20",f:function(r){return ch(r.r20);}},{h:"90d",k:"r90",f:function(r){return ch(r.r90);}},
+  {h:"vs 50-day avg",k:"vs50",f:function(r){return ch(r.vs50);}},
+  {h:"Trend",k:"trend",f:function(r){return chip(r.trend);}},{h:"Score",k:"score",f:function(r){return r.score;}}],
+ tokens:[{h:"Token",k:"symbol",f:function(r){var u=String(r.url||""),n='<b>'+esc(r.symbol)+'</b> <span class="s">'+esc(r.name)+'</span>';return u.indexOf("https://dexscreener.com/")===0?'<a href="'+esc(u)+'" target="_blank" rel="noopener noreferrer">'+n+'</a>':n;}},
+  {h:"Chain",k:"chain",f:function(r){return esc(r.chain);}},{h:"Checks",k:"status",f:function(r){return chip(r.status);}},
+  {h:"Age",k:"age_h",f:function(r){return age(r.age_h);}},{h:"Liquidity",k:"liq",f:function(r){return usd(r.liq);}},
+  {h:"24h volume",k:"vol",f:function(r){return usd(r.vol);}},{h:"24h change",k:"ch24",f:function(r){return ch(r.ch24);}},
+  {h:"Why",k:"reasons",f:function(r){return '<span class="s">'+esc((r.reasons||[]).join("; "))+'</span>';}}]
+};
+var NOTES={
+ crypto:"Top 500 coins by size, after removing stablecoins, wrapped coins and anything under $1M daily volume. Trend is Up when both the 7-day and 30-day change are positive. Score (0 to 100) compares how strong those moves are against other coins.",
+ stocks:"S&P 500 stocks only. Trend is Up when the price is above its 50-day average and the 90-day change is positive. Score (0 to 100) compares 90-day and 20-day strength against other stocks. Prices are daily closes, so weekends show Friday.",
+ tokens:"PASS only means basic market checks were passed: age, liquidity, volume, trade mix. We do NOT check the contract (honeypot, who can mint more, who holds the supply, locked liquidity), so PASS does not mean safe. Most new tokens go to zero. Not ranked by upside."
+};
+function showView(v){
+  $("view-dash").hidden=v!=="dash";$("view-scan").hidden=v!=="scan";
+  $("nb-dash").className=v==="dash"?"on":"";$("nb-scan").className=v==="scan"?"on":"";
+  try{history.replaceState(null,"","#"+v);}catch(e){}
+}
+function renderScan(){
+  if(!SCAN){return;}
+  var sb=SCAN.scoreboard||{},cards="";
+  [["crypto","Crypto top picks"],["stocks","Stock top picks"]].forEach(function(u){
+    var d=sb[u[0]]||{tests:0};
+    if(d.tests>0){
+      cards+=stat(u[1],d.wins+" of "+d.tests+" beat the middle","Average "+(d.avg_excess>=0?"+":"")+d.avg_excess.toFixed(2)+"% vs the median over "+sb.horizon+" days",col(d.avg_excess));
+    }else{
+      cards+=stat(u[1],"Not enough data yet","Needs "+(sb.horizon+1)+" days of history. Day "+(sb.days||0)+" so far.");
+    }
+  });
+  cards+=stat("Last scan",String(SCAN.updated).replace("T"," ").slice(0,16)+" UTC",Object.keys(SCAN.errors||{}).length?"Problem with: "+Object.keys(SCAN.errors).join(", "):"All sources worked");
+  $("sb").innerHTML=cards;
+  $("sbnote").textContent="Each day the top 10 coins and stocks in an uptrend are recorded. "+(sb.horizon||7)+" days later we check whether they beat the median coin or stock. These windows overlap, so treat it as a rough guide, not proof.";
+  var d=SCAN[TAB];
+  $("upol").textContent=TAB==="tokens"?"Passed checks only":"Uptrend only";
+  var tbl=$("stbl");
+  if(!d||!d.rows||!d.rows.length){
+    tbl.innerHTML='<tbody><tr><td class="s">No data for this section yet.'+(SCAN.errors&&SCAN.errors[TAB]?" Problem: "+esc(SCAN.errors[TAB]):"")+'</td></tr></tbody>';
+    $("scnote").textContent="";$("more").hidden=true;return;
+  }
+  var up=d.updated?" Updated "+String(d.updated).replace("T"," ").slice(0,16)+" UTC.":"";
+  if(TAB==="stocks"&&d.last_date)up+=" Latest trading day: "+d.last_date+".";
+  $("scnote").textContent=NOTES[TAB]+up;
+  var q=$("q").value.trim().toLowerCase(),only=$("upo").checked,s=SORT[TAB];
+  var rows=d.rows.map(function(r,i){r._i=i;return r;}).filter(function(r){
+    if(only&&(TAB==="tokens"?r.status!=="PASS":r.trend!=="Up"))return false;
+    if(q&&((r.symbol||"")+" "+(r.name||"")).toLowerCase().indexOf(q)<0)return false;
+    return true;
+  });
+  rows.sort(function(a,b){
+    var x=a[s[0]],y=b[s[0]];
+    if(Array.isArray(x)){x=x.length;y=y.length;}
+    if(x==null)x=-1e18;if(y==null)y=-1e18;
+    if(typeof x==="string"||typeof y==="string"){return String(x).localeCompare(String(y))*s[1];}
+    return (x-y)*s[1];
+  });
+  var cols=COLS[TAB],h="<thead><tr><th>#</th>"+cols.map(function(c){return '<th data-k="'+c.k+'" title="Click to sort">'+c.h+(s[0]===c.k?(s[1]<0?" ▼":" ▲"):"")+'</th>';}).join("")+"</tr></thead><tbody>";
+  rows.slice(0,SHOWN).forEach(function(r,i){h+="<tr><td class=\"s\">"+(i+1)+"</td>"+cols.map(function(c){return "<td>"+c.f(r)+"</td>";}).join("")+"</tr>";});
+  tbl.innerHTML=h+"</tbody>";
+  $("more").hidden=rows.length<=SHOWN;
+  $("more").textContent="Show more ("+(rows.length-SHOWN)+" left)";
+}
+function loadScan(){
+  fetch("data/scan.json?"+Date.now()).then(function(r){return r.json();}).then(function(j){SCAN=j;renderScan();})
+  .catch(function(){$("scnote").textContent="No scanner data yet. It appears after the GitHub scan robot has run.";});
+  setTimeout(loadScan,600000);
+}
+function initScan(){
+  $("nb-dash").onclick=function(){showView("dash");};
+  $("nb-scan").onclick=function(){showView("scan");};
+  $("tabs").onclick=function(e){
+    var t=e.target.getAttribute&&e.target.getAttribute("data-t");if(!t)return;
+    TAB=t;SHOWN=60;Array.prototype.forEach.call($("tabs").children,function(b){b.className=b.getAttribute("data-t")===t?"on":"";});
+    renderScan();
+  };
+  $("stbl").onclick=function(e){
+    var k=e.target.getAttribute&&e.target.getAttribute("data-k");if(!k)return;
+    var s=SORT[TAB];SORT[TAB]=[k,s[0]===k?-s[1]:(k==="name"||k==="symbol"||k==="chain"||k==="status"||k==="trend"?1:-1)];
+    renderScan();
+  };
+  $("more").onclick=function(){SHOWN+=100;renderScan();};
+  $("q").oninput=function(){SHOWN=60;renderScan();};
+  $("upo").onchange=function(){SHOWN=60;renderScan();};
+  if(location.hash==="#scan")showView("scan");
+  loadScan();
+}
+clock();setInterval(clock,1000);loadRule();loadPaper();loadJournal();loadStocks();initScan();init();
 </script>
 </body>
 </html>
