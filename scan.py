@@ -5,6 +5,7 @@ import json, time
 from datetime import datetime, timezone
 from pathlib import Path
 import requests
+import paper_scan
 
 OUT = Path("data/scan.json")
 HIST = Path("data/scan_history.json")
@@ -400,6 +401,7 @@ def main():
     OUT.parent.mkdir(parents=True, exist_ok=True)
 
     crypto_rows = stock_rows = None
+    last_date = None
     try:
         crypto_rows = build_crypto(fetch_crypto())
         out["crypto"] = {"updated": stamp, "rows": crypto_rows}
@@ -423,6 +425,14 @@ def main():
     except Exception as e:
         out["errors"]["tokens"] = str(e)[:200]
         out["tokens"] = old.get("tokens")
+
+    try:
+        out["paper"] = paper_scan.step(old.get("paper"), now.strftime("%Y-%m-%d"),
+                                       crypto_rows, stock_rows, last_date if stock_rows else None)
+        print("paper account:", out["paper"]["equity"], "positions:", len(out["paper"]["positions"]))
+    except Exception as e:
+        out["errors"]["paper"] = str(e)[:200]
+        out["paper"] = old.get("paper")
 
     snap = {"date": now.strftime("%Y-%m-%d"), "picks": {}, "prices": {}}
     if crypto_rows:

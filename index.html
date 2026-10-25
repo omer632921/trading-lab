@@ -92,6 +92,11 @@ svg{width:100%;height:50px;display:block}
     <h2>Scoreboard <span class="sub">(did the top picks actually do better?)</span></h2>
     <div class="g" id="sb"></div>
     <p class="sub" id="sbnote"></p>
+    <h2>Scanner paper account <span class="sub">(fake money, trades the picks by fixed rules)</span></h2>
+    <div class="g" id="psg"></div>
+    <div class="c tb" id="pst" style="margin-top:10px"></div>
+    <div class="c tb" id="pstr" style="margin-top:10px"></div>
+    <p class="sub" id="psnote"></p>
     <div class="tabs" id="tabs"><button data-t="crypto" class="on">Crypto</button><button data-t="stocks">Stocks (S&amp;P 500)</button><button data-t="tokens">New tokens</button></div>
     <div class="ctl"><input id="q" type="search" placeholder="Search name or symbol" aria-label="Search"><label><input type="checkbox" id="upo"> <span id="upol">Uptrend only</span></label></div>
     <p class="sub" id="scnote"></p>
@@ -371,8 +376,31 @@ function showView(v){
   $("nb-dash").className=v==="dash"?"on":"";$("nb-scan").className=v==="scan"?"on":"";
   try{history.replaceState(null,"","#"+v);}catch(e){}
 }
+function renderPaperScan(){
+  var P=SCAN&&SCAN.paper;
+  if(!P){$("psg").innerHTML=stat("Scanner paper account","Starts at the next daily scan","Fake $10,000. No trades yet.");$("pst").innerHTML="";$("pstr").innerHTML="";$("psnote").textContent="";return;}
+  var eq=P.equity,ret=(eq/P.start-1)*100,h=P.history||[],b=h.length?h[h.length-1].bench:P.start,bret=(b/P.start-1)*100,n=Object.keys(P.positions).length;
+  var inv=eq-P.cash;
+  $("psg").innerHTML=stat("Account value",money(eq),pct(ret)+" since "+esc(P.started),col(ret))
+   +stat("Average of everything scanned",money(b),pct(bret)+" (no trading)",col(bret))
+   +stat("Beating the average?",ret>bret?"Yes, so far":"No, so far","Gap "+pct(ret-bret),col(ret-bret))
+   +stat("Open positions",n+" of 10","Invested "+money(inv)+", cash "+money(P.cash))
+   +stat("Fees paid",money(P.fees_paid||0),"Slippage costs extra, built into prices");
+  var t='<table class="st"><thead><tr><th>Holding</th><th>Bought</th><th>Buy price</th><th>Now</th><th>Value</th><th>Gain</th></tr></thead><tbody>';
+  var ps=Object.keys(P.positions).map(function(k){return P.positions[k];});
+  if(!ps.length)t+='<tr><td class="s" colspan="6">Nothing held yet. It buys when it sees uptrends on a trading day.</td></tr>';
+  ps.forEach(function(p){var g=(p.last/p.entry-1)*100;t+='<tr><td><b>'+esc(p.symbol)+'</b> <span class="s">'+esc(p.u)+'</span></td><td>'+esc(p.date)+'</td><td>'+money(p.entry)+'</td><td>'+money(p.last)+'</td><td>'+money(p.qty*p.last)+'</td><td>'+ch(g)+'</td></tr>';});
+  $("pst").innerHTML=t+'</tbody></table>';
+  var tr=(P.trades||[]).slice(-25).reverse();
+  var u='<table class="st"><thead><tr><th>Date</th><th>Action</th><th>Asset</th><th>Price</th><th>Value</th><th>Profit</th><th>Why</th></tr></thead><tbody>';
+  if(!tr.length)u+='<tr><td class="s" colspan="7">No trades yet.</td></tr>';
+  tr.forEach(function(x){u+='<tr><td>'+esc(x.date)+'</td><td>'+chip(x.side==="BUY"?"Up":"Down").replace(/>(Up|Down)</,">"+esc(x.side)+"<")+'</td><td><b>'+esc(x.symbol)+'</b></td><td>'+money(Number(x.price))+'</td><td>'+money(Number(x.value))+'</td><td>'+(x.pnl==null?'<span class="s">-</span>':'<span class="'+col(x.pnl)+'">'+(x.pnl>=0?"+":"-")+money(Math.abs(x.pnl))+'</span>')+'</td><td class="s">'+esc(x.why)+'</td></tr>';});
+  $("pstr").innerHTML=u+'</tbody></table>';
+  $("psnote").textContent="Pretend money only. Rules: buy the top uptrend picks (5% of the account each, max 10 holdings, max 5 per market); sell when the trend is lost or the price is 10% below the buy price; wait 7 days before re-buying after a stop-loss; 0.1% fee plus slippage on every trade. Stocks trade only on new trading days. Showing the last 25 trades. Treat results as meaningless until it has run for a few months.";
+}
 function renderScan(){
   if(!SCAN){return;}
+  renderPaperScan();
   var sb=SCAN.scoreboard||{},cards="";
   [["crypto","Crypto top picks"],["stocks","Stock top picks"]].forEach(function(u){
     var d=sb[u[0]]||{tests:0};
