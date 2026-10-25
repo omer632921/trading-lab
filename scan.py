@@ -216,6 +216,129 @@ def check_token(p, now_ms):
             "status": status, "reasons": fails + warns}
 
 
+EVM_ID = {"ethereum": "1", "bsc": "56", "base": "8453"}
+
+
+def _f(x):
+    try:
+        return float(x)
+    except (TypeError, ValueError):
+        return None
+
+
+def goplus_evm(chain, addrs):
+    """Contract checks for EVM tokens. Returns {address_lower: (danger, warn)}."""
+    out = {}
+    for i in range(0, len(addrs), 25):
+        batch = addrs[i:i + 25]
+        try:
+            res = get_json(f"https://api.gopluslabs.io/api/v1/token_security/{EVM_ID[chain]}",
+                           {"contract_addresses": ",".join(batch)}).get("result") or {}
+        except Exception as e:
+            print("goplus failed:", chain, str(e)[:80])
+            continue
+        for a, d in res.items():
+            if not isinstance(d, dict) or not d:
+                continue
+            bad, warn = [], []
+            if d.get("is_honeypot") == "1":
+                bad.append("Honeypot: you may not be able to sell")
+            if d.get("cannot_sell_all") == "1":
+                bad.append("Cannot sell all tokens")
+            if d.get("is_open_source") == "0":
+                bad.append("Contract code not published")
+            if d.get("hidden_owner") == "1":
+                bad.append("Hidden owner")
+            if d.get("selfdestruct") == "1":
+                bad.append("Contract can self-destruct")
+            if d.get("transfer_pausable") == "1":
+                warn.append("Owner can pause trading")
+            if d.get("is_blacklisted") == "1":
+                warn.append("Owner can blacklist wallets")
+            if d.get("is_mintable") == "1":
+                warn.append("Owner can mint more tokens")
+            if d.get("can_take_back_ownership") == "1":
+                warn.append("Ownership can be taken back")
+            if d.get("is_proxy") == "1":
+                warn.append("Upgradeable contract (code can change)")
+            for k, label in (("buy_tax", "Buy"), ("sell_tax", "Sell")):
+                t = _f(d.get(k))
+                if t is not None and t > 0.10:
+                    bad.append(f"{label} tax {t * 100:.0f}%")
+                elif t is not None and t > 0.03:
+                    warn.append(f"{label} tax {t * 100:.0f}%")
+            holders = [h for h in (d.get("holders") or []) if isinstance(h, dict)]
+            top = sum((_f(h.get("percent")) or 0) for h in holders
+                      if h.get("is_contract") != 1 and not h.get("is_locked"))
+            if holders and top > 0.5:
+                bad.append(f"Top wallets hold {top * 100:.0f}% of supply")
+            elif holders and top > 0.25:
+                warn.append(f"Top wallets hold {top * 100:.0f}% of supply")
+            owner = _f(d.get("owner_percent"))
+            if owner is not None and owner > 0.05:
+                warn.append(f"Owner holds {owner * 100:.0f}%")
+            out[a.lower()] = (bad, warn)
+        time.sleep(1)
+    return out
+
+
+def rugcheck_sol(addrs):
+    """Contract checks for Solana tokens. Returns {address: (danger, warn)}."""
+    out = {}
+    for a in addrs:
+        try:
+            d = get_json(f"https://api.rugcheck.xyz/v1/tokens/{a}/report/summary", tries=2)
+        except Exception as e:
+            print("rugcheck failed:", str(e)[:80])
+            time.sleep(1)
+            continue
+        bad, warn = [], []
+        for r in d.get("risks") or []:
+            name = str(r.get("name") or "risk")[:80]
+            (bad if r.get("level") == "danger" else warn).append(name)
+        out[a] = (bad, warn)
+        time.sleep(0.7)
+    return out
+
+
+def contract_checks(rows, limit=120):
+    """Adds contract results to rows that passed the market checks. A token whose
+    contract could not be checked can never show PASS."""
+    todo = [r for r in rows if r["status"] != "FAIL" and r.get("address")][:limit]
+    by_chain = {}
+    for r in todo:
+        by_chain.setdefault(r["chain"], []).append(r["address"])
+    found = {}
+    for chain, addrs in by_chain.items():
+        if chain in EVM_ID:
+            for k, v in goplus_evm(chain, addrs).items():
+                found[(chain, k)] = v
+        elif chain == "solana":
+            for k, v in rugcheck_sol(addrs).items():
+                found[(chain, k.lower())] = v
+    for r in rows:
+        r["contract"] = "skipped"
+        if r not in todo:
+            continue
+        hit = found.get((r["chain"], (r.get("address") or "").lower()))
+        if hit is None:
+            r["contract"] = "unchecked"
+            r["reasons"].append("Contract could not be checked")
+            if r["status"] == "PASS":
+                r["status"] = "WARN"
+            continue
+        bad, warn = hit
+        r["contract"] = "danger" if bad else "warn" if warn else "clean"
+        r["reasons"] = bad + r["reasons"] + warn
+        if bad:
+            r["status"] = "FAIL"
+        elif warn and r["status"] == "PASS":
+            r["status"] = "WARN"
+    order = {"PASS": 0, "WARN": 1, "FAIL": 2}
+    rows.sort(key=lambda r: (order[r["status"]], -r["liq"]))
+    return rows
+
+
 def build_tokens(pairs, now_ms):
     best = {}
     for p in pairs:
@@ -294,6 +417,7 @@ def main():
         out["stocks"] = old.get("stocks")
     try:
         rows = build_tokens(fetch_pairs(), now.timestamp() * 1000)
+        rows = contract_checks(rows)
         out["tokens"] = {"updated": stamp, "rows": rows}
         print("token rows:", len(rows), "pass:", sum(r["status"] == "PASS" for r in rows))
     except Exception as e:

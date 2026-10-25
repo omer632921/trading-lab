@@ -356,6 +356,7 @@ var COLS={
   {h:"Trend",k:"trend",f:function(r){return chip(r.trend);}},{h:"Score",k:"score",f:function(r){return r.score;}}],
  tokens:[{h:"Token",k:"symbol",f:function(r){var u=String(r.url||""),n='<b>'+esc(r.symbol)+'</b> <span class="s">'+esc(r.name)+'</span>';return u.indexOf("https://dexscreener.com/")===0?'<a href="'+esc(u)+'" target="_blank" rel="noopener noreferrer">'+n+'</a>':n;}},
   {h:"Chain",k:"chain",f:function(r){return esc(r.chain);}},{h:"Checks",k:"status",f:function(r){return chip(r.status);}},
+  {h:"Contract",k:"contract",f:function(r){var c=r.contract||"",t={clean:"Clean",warn:"Warnings",danger:"Danger",unchecked:"Not checked",skipped:"Skipped"}[c]||"Old scan";return '<span class="s">'+esc(t)+'</span>';}},
   {h:"Age",k:"age_h",f:function(r){return age(r.age_h);}},{h:"Liquidity",k:"liq",f:function(r){return usd(r.liq);}},
   {h:"24h volume",k:"vol",f:function(r){return usd(r.vol);}},{h:"24h change",k:"ch24",f:function(r){return ch(r.ch24);}},
   {h:"Why",k:"reasons",f:function(r){return '<span class="s">'+esc((r.reasons||[]).join("; "))+'</span>';}}]
@@ -363,7 +364,7 @@ var COLS={
 var NOTES={
  crypto:"Top 500 coins by size, after removing stablecoins, wrapped coins and anything under $1M daily volume. Trend is Up when both the 7-day and 30-day change are positive. Score (0 to 100) compares how strong those moves are against other coins.",
  stocks:"S&P 500 stocks only. Trend is Up when the price is above its 50-day average and the 90-day change is positive. Score (0 to 100) compares 90-day and 20-day strength against other stocks. Prices are daily closes, so weekends show Friday.",
- tokens:"PASS only means basic market checks were passed: age, liquidity, volume, trade mix. We do NOT check the contract (honeypot, who can mint more, who holds the supply, locked liquidity), so PASS does not mean safe. Most new tokens go to zero. Not ranked by upside."
+ tokens:"PASS means the market checks (age, liquidity, volume, trade mix) AND a contract scan (honeypot, hidden owner, mint power, taxes, who holds the supply) found nothing bad. Contract data comes from free third-party services (GoPlus for Ethereum, Base and BNB; RugCheck for Solana) and can miss things, for example locked liquidity is not checked. If the contract could not be checked it can never show PASS. PASS still does not mean safe. Most new tokens go to zero. Not ranked by upside."
 };
 function showView(v){
   $("view-dash").hidden=v!=="dash";$("view-scan").hidden=v!=="scan";
