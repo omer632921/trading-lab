@@ -1,0 +1,294 @@
+{
+ "updated": "2026-10-25T09:52:07+00:00",
+ "total": 30,
+ "counts": {
+  "yes": 13,
+  "no": 13,
+  "pending": 3,
+  "flat": 1
+ },
+ "hit_rate": 50.0,
+ "decided": 26,
+ "by_confidence": {
+  "low": {
+   "hit_rate": 44.4,
+   "decided": 9
+  },
+  "medium": {
+   "hit_rate": 52.9,
+   "decided": 17
+  }
+ },
+ "recent": [
+  {
+   "ts": "2026-10-24T14:31:21.415051+00:00",
+   "direction": "UP",
+   "score": 8.87,
+   "confidence": "medium",
+   "price": 80189.0,
+   "later_change_pct": null,
+   "correct": "pending"
+  },
+  {
+   "ts": "2026-10-24T14:30:21.195089+00:00",
+   "direction": "UP",
+   "score": 6.94,
+   "confidence": "low",
+   "price": 80047.0,
+   "later_change_pct": null,
+   "correct": "pending"
+  },
+  {
+   "ts": "2026-10-24T14:29:20.913470+00:00",
+   "direction": "DOWN",
+   "score": 6.81,
+   "confidence": "medium",
+   "price": 79936.0,
+   "later_change_pct": null,
+   "correct": "pending"
+  },
+  {
+   "ts": "2026-10-24T14:28:20.696456+00:00",
+   "direction": "DOWN",
+   "score": 2.0,
+   "confidence": "low",
+   "price": 80045.0,
+   "later_change_pct": 0.17989880692110688,
+   "correct": "no"
+  },
+  {
+   "ts": "2026-10-24T14:26:20.417917+00:00",
+   "direction": "DOWN",
+   "score": 9.72,
+   "confidence": "medium",
+   "price": 80070.0,
+   "later_change_pct": -0.1673535656300737,
+   "correct": "yes"
+  },
+  {
+   "ts": "2026-10-24T14:25:20.036228+00:00",
+   "direction": "DOWN",
+   "score": 3.18,
+   "confidence": "low",
+   "price": 80226.0,
+   "later_change_pct": -0.22561264427990926,
+   "correct": "yes"
+  },
+  {
+   "ts": "2026-10-24T14:24:19.799925+00:00",
+   "direction": "UP",
+   "score": 1.99,
+   "confidence": "medium",
+   "price": 80277.0,
+   "later_change_pct": -0.249137361884475,
+   "correct": "no"
+  },
+  {
+   "ts": "2026-10-24T14:23:19.424222+00:00",
+   "direction": "UP",
+   "score": 1.06,
+   "confidence": "medium",
+   "price": 80245.0,
+   "later_change_pct": -0.2180821234967911,
+   "correct": "no"
+  },
+  {
+   "ts": "2026-10-24T14:22:19.187380+00:00",
+   "direction": "UP",
+   "score": 6.61,
+   "confidence": "medium",
+   "price": 80228.0,
+   "later_change_pct": -0.002492895248541656,
+   "correct": "no"
+  },
+  {
+   "ts": "2026-10-24T14:19:18.747722+00:00",
+   "direction": "DOWN",
+   "score": 5.92,
+   "confidence": "medium",
+   "price": 80110.0,
+   "later_change_pct": 0.14729746598427162,
+   "correct": "no"
+  },
+  {
+   "ts": "2026-10-24T14:18:18.486231+00:00",
+   "direction": "DOWN",
+   "score": 10.76,
+   "confidence": "medium",
+   "price": 80205.0,
+   "later_change_pct": -0.10348482014836981,
+   "correct": "yes"
+  },
+  {
+   "ts": "2026-10-24T14:17:18.131221+00:00",
+   "direction": "DOWN",
+   "score": 8.51,
+   "confidence": "medium",
+   "price": 80378.0,
+   "later_change_pct": -0.334668690437682,
+   "correct": "yes"
+  },
+  {
+   "ts": "2026-10-24T14:16:17.874616+00:00",
+   "direction": "DOWN",
+   "score": 1.86,
+   "confidence": "medium",
+   "price": 80515.0,
+   "later_change_pct": -0.5030118611438862,
+   "correct": "yes"
+  },
+  {
+   "ts": "2026-10-24T14:15:17.673085+00:00",
+   "direction": "DOWN",
+   "score": 1.18,
+   "confidence": "medium",
+   "price": 80545.0,
+   "later_change_pct": -0.4221242783537153,
+   "correct": "yes"
+  },
+  {
+   "ts": "2026-10-24T14:14:17.322226+00:00",
+   "direction": "DOWN",
+   "score": 2.73,
+   "confidence": "medium",
+   "price": 80564.0,
+   "later_change_pct": -0.23087234993297256,
+   "correct": "yes"
+  },
+  {
+   "ts": "2026-10-24T14:13:17.078836+00:00",
+   "direction": "DOWN",
+   "score": 2.17,
+   "confidence": "low",
+   "price": 80608.0,
+   "later_change_pct": -0.11537316395394998,
+   "correct": "yes"
+  },
+  {
+   "ts": "2026-10-24T14:10:16.688215+00:00",
+   "direction": "DOWN",
+   "score": 1.18,
+   "confidence": "medium",
+   "price": 80631.0,
+   "later_change_pct": -0.02852500899157892,
+   "correct": "yes"
+  },
+  {
+   "ts": "2026-10-24T14:07:16.210456+00:00",
+   "direction": "UP",
+   "score": 1.36,
+   "confidence": "medium",
+   "price": 80669.0,
+   "later_change_pct": -0.04710607544409873,
+   "correct": "no"
+  },
+  {
+   "ts": "2026-10-24T14:02:15.580744+00:00",
+   "direction": "UP",
+   "score": 1.36,
+   "confidence": "low",
+   "price": 80628.0,
+   "later_change_pct": 0.021084486778786528,
+   "correct": "yes"
+  },
+  {
+   "ts": "2026-10-24T13:57:14.962677+00:00",
+   "direction": "DOWN",
+   "score": 2.17,
+   "confidence": "low",
+   "price": 80616.0,
+   "later_change_pct": 0.0049617941847772155,
+   "correct": "no"
+  },
+  {
+   "ts": "2026-10-24T13:56:14.755724+00:00",
+   "direction": "UP",
+   "score": 1.05,
+   "confidence": "medium",
+   "price": 80651.0,
+   "later_change_pct": -0.042156947836976606,
+   "correct": "no"
+  },
+  {
+   "ts": "2026-10-24T13:55:14.533609+00:00",
+   "direction": "UP",
+   "score": 1.24,
+   "confidence": "low",
+   "price": 80634.0,
+   "later_change_pct": -0.021082917875834016,
+   "correct": "no"
+  },
+  {
+   "ts": "2026-10-24T13:44:13.436863+00:00",
+   "direction": "DOWN",
+   "score": 1.12,
+   "confidence": "low",
+   "price": 80601.0,
+   "later_change_pct": 0.023572908524708128,
+   "correct": "no"
+  },
+  {
+   "ts": "2026-10-24T13:37:12.723715+00:00",
+   "direction": "UP",
+   "score": 1.86,
+   "confidence": "low",
+   "price": 80641.0,
+   "later_change_pct": -0.011160575885715703,
+   "correct": "no"
+  },
+  {
+   "ts": "2026-10-24T13:35:12.456629+00:00",
+   "direction": "DOWN",
+   "score": 1.55,
+   "confidence": "medium",
+   "price": 80624.0,
+   "later_change_pct": 0.009922603691208573,
+   "correct": "no"
+  },
+  {
+   "ts": "2026-10-24T13:34:12.249449+00:00",
+   "direction": "DOWN",
+   "score": 2.6,
+   "confidence": "medium",
+   "price": 80649.0,
+   "later_change_pct": -0.00991952783047527,
+   "correct": "yes"
+  },
+  {
+   "ts": "2026-10-24T13:32:11.928227+00:00",
+   "direction": "DOWN",
+   "score": 2.29,
+   "confidence": "low",
+   "price": 80700.0,
+   "later_change_pct": -0.09417596034696406,
+   "correct": "yes"
+  },
+  {
+   "ts": "2026-10-24T12:50:02.435161+00:00",
+   "direction": "UP",
+   "score": 1.11,
+   "confidence": "medium",
+   "price": 80740.0,
+   "later_change_pct": -0.0049541738915035915,
+   "correct": "no"
+  },
+  {
+   "ts": "2026-10-24T12:49:02.363150+00:00",
+   "direction": "UP",
+   "score": 1.18,
+   "confidence": "medium",
+   "price": 80722.0,
+   "later_change_pct": 0.0322093109685092,
+   "correct": "yes"
+  },
+  {
+   "ts": "2026-10-24T12:43:17.936784+00:00",
+   "direction": "DOWN",
+   "score": 1.67,
+   "confidence": "low",
+   "price": 80693.0,
+   "later_change_pct": 0.0,
+   "correct": "flat"
+  }
+ ]
+}
