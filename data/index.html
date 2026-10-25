@@ -44,6 +44,8 @@ svg{width:100%;height:50px;display:block}
   <h1>Overview</h1>
   <div class="sub" id="today"></div>
   <div class="g" id="ov" style="margin-top:10px"></div>
+  <h2>Why the bot is doing this <span class="sub">(written by fixed rules from the numbers on this page, not by AI)</span></h2>
+  <div class="g" id="why" style="grid-template-columns:repeat(auto-fit,minmax(260px,1fr))"></div>
   <h2>Major crypto <span class="sub">(change since midnight UTC, each candle = 5 minutes)</span></h2>
   <div class="g" id="major"></div>
   <h2>Meme coins <span class="sub">(very volatile)</span></h2>
@@ -126,6 +128,43 @@ function render(){
   $("major").innerHTML=MAJOR.map(function(s){return card(s);}).join("");
   $("meme").innerHTML=MEME.map(function(s){return card(s,'<span class="tag">high risk</span>');}).join("");
   renderPaper();
+  renderWhy();
+}
+function renderWhy(){
+  var by=latestRule(),names=Object.keys(by),out="";
+  if(!names.length){$("why").innerHTML='<div class="c s">Explanations appear once the GitHub robot has saved its first check.</div>';return;}
+  names.forEach(function(n){
+    var e=by[n],gap=(e.price/e.avg50-1)*100,above=e.state==="IN",flip=null;
+    RULE.forEach(function(x){if(x.coin===n&&x.changed)flip=x;});
+    var t='<b>'+n+' is '+e.state+'.</b> Its latest daily close ('+money(e.price)+') is '+Math.abs(gap).toFixed(1)+'% '+(above?'above':'below')+' its 50-day average ('+money(e.avg50)+'). '+
+      (above?'So the rule holds it, and sells if a daily close finishes below '+money(e.avg50)+'.':'So the rule stays in cash, and buys only if a daily close finishes above '+money(e.avg50)+'.');
+    var d=LIVE[SYM[n]];
+    if(d&&(d.p>e.avg50)!==above)t+=' The live price ('+money(d.p)+') is already on the other side of that line, but the rule only counts the daily close, so nothing changes until the next check at 00:17 UTC.';
+    t+=flip?' Last change: '+flip.ts.slice(0,10)+'.':' No change since tracking began.';
+    out+='<div class="c s" style="color:var(--text)">'+t+'</div>';
+  });
+  if(PAPER){
+    var nt=PAPER.trades.length,t2;
+    if(nt===0){t2='<b>Paper account.</b> No trades since '+PAPER.start.slice(0,10)+'. No coin has closed above its 50-day average, so it holds cash and its value stays flat.';}
+    else{var l=PAPER.trades[nt-1];t2='<b>Paper account.</b> Last trade: '+l.side+' '+l.coin+' at '+money(l.price)+' on '+l.ts.slice(0,10)+', because the rule flipped to '+(l.side==="BUY"?'IN':'OUT')+'. '+nt+' trades so far.';}
+    var names2=Object.keys(PAPER.slots),pv=0,hv=0,ok=true,slot0=PAPER.start_cash/names2.length;
+    names2.forEach(function(nm){var s=PAPER.slots[nm],d=LIVE[SYM[nm]];if(!d){ok=false;return;}pv+=s.cash+s.units*d.p;hv+=slot0/s.start_px*(1-PAPER.fee)*d.p;});
+    if(ok){
+      var pr=(pv/PAPER.start_cash-1)*100,hr=(hv/PAPER.start_cash-1)*100;
+      if(Math.abs(pr)<0.005)pr=0;
+      t2+=' Since the start the rule is '+pct(pr)+' and buy and hold is '+pct(hr)+'.';
+      if(nt===0)t2+=pr>hr?' The rule is ahead only because holding cash avoided a fall in prices.':' The rule is behind only because holding cash missed a rise in prices.';
+    }
+    t2+=' It is too early to judge.';
+    out+='<div class="c s" style="color:var(--text)">'+t2+'</div>';
+  }
+  if(JOURNAL&&JOURNAL.decided){
+    var hit=JOURNAL.hit_rate,t3='<b>Minute signal.</b> It alerted '+JOURNAL.total+' times. Of '+JOURNAL.decided+' alerts that could be graded, '+hit.toFixed(1)+'% were right. ';
+    t3+=Math.abs(hit-50)<10?'A coin flip scores 50%, so this signal shows no edge.':'That is too few alerts to trust.';
+    out+='<div class="c s" style="color:var(--text)">'+t3+'</div>';
+  }
+  out+='<div class="c s" style="color:var(--text)"><b>Test result (25 Oct 2026).</b> Across 17 coins, no rule beat buy and hold on at least 60% of coins since 2023, so nothing here is ready for real money.</div>';
+  $("why").innerHTML=out;
 }
 function renderRule(){
   var by=latestRule(),names=Object.keys(by);
