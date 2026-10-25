@@ -48,6 +48,9 @@ svg{width:100%;height:50px;display:block}
   <div class="g" id="major"></div>
   <h2>Meme coins <span class="sub">(very volatile)</span></h2>
   <div class="g" id="meme"></div>
+  <h2>Stocks <span class="sub">(delayed, each candle = 1 day)</span></h2>
+  <div class="g" id="stk"></div>
+  <p class="sub" id="stknote"></p>
   <h2>Trend rule (paper only)</h2>
   <div class="g" id="rule"></div>
   <p class="sub" id="rulenote"></p>
@@ -66,7 +69,7 @@ svg{width:100%;height:50px;display:block}
 <script>
 var MAJOR=["BTC","ETH","SOL","AVAX"],MEME=["DOGE","SHIB","PEPE","BONK"],WANT=MAJOR.concat(MEME);
 var API="https://api.kraken.com/0/public/";
-var ALT={},BYKEY={},LIVE={},PREV={},CANDLES={},RULE=[],PAPER=null,JOURNAL=null,lastTick=null,fails=0;
+var ALT={},BYKEY={},LIVE={},PREV={},CANDLES={},RULE=[],PAPER=null,JOURNAL=null,STOCKS=null,lastTick=null,fails=0;
 var SYM={Bitcoin:"BTC",Ethereum:"ETH",Solana:"SOL"};
 function $(id){return document.getElementById(id);}
 function money(x){if(x>=1)return "$"+x.toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2});if(x>=0.01)return "$"+x.toFixed(4);return "$"+x.toFixed(8);}
@@ -175,6 +178,25 @@ function renderPaper(){
   }
   $("trades").innerHTML=rows;
 }
+function renderStocks(){
+  var s=STOCKS;
+  if(!s||!s.stocks){
+    $("stk").innerHTML='<div class="c s">No stock data yet. It appears after the GitHub stock robot has run.</div>';
+    $("stknote").textContent="";return;
+  }
+  var out="";
+  Object.keys(s.stocks).forEach(function(k){
+    var d=s.stocks[k];
+    out+='<div class="c"><div class="row"><b>'+k+'</b><span class="'+col(d.change_pct)+'">'+pct(d.change_pct)+'</span></div><div class="p">'+money(d.price)+'</div>'+candles(d.candles)+'<div class="s">Latest candle: '+d.last_date+'</div></div>';
+  });
+  $("stk").innerHTML=out;
+  $("stknote").textContent="Saved "+String(s.updated).replace("T"," ").slice(0,16)+" UTC. Prices are usually delayed by about 15 minutes and update only when the stock robot runs on US market days. The change is against the previous close.";
+}
+function loadStocks(){
+  fetch("data/stocks.json?"+Date.now()).then(function(r){return r.json();}).then(function(j){STOCKS=j;renderStocks();})
+  .catch(function(){renderStocks();});
+  setTimeout(loadStocks,300000);
+}
 function renderJournal(){
   var j=JOURNAL;
   if(!j){$("jn").innerHTML='<div class="c s">No journal data yet.</div>';$("jt").innerHTML="";return;}
@@ -244,7 +266,7 @@ function init(){
     pollLive();pollCandles();
   }).catch(function(e){setStatus(false,"Cannot reach Kraken: "+e.message);});
 }
-clock();setInterval(clock,1000);loadRule();loadPaper();loadJournal();init();
+clock();setInterval(clock,1000);loadRule();loadPaper();loadJournal();loadStocks();init();
 </script>
 </body>
 </html>
