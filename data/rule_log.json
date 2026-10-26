@@ -70,5 +70,29 @@
   "price": 102.24,
   "avg50": 109.63,
   "changed": false
+ },
+ {
+  "ts": "2026-10-26T01:14:44+00:00",
+  "coin": "Bitcoin",
+  "state": "OUT",
+  "price": 80048.5,
+  "avg50": 81803.36,
+  "changed": false
+ },
+ {
+  "ts": "2026-10-26T01:14:44+00:00",
+  "coin": "Ethereum",
+  "state": "OUT",
+  "price": 2326.5,
+  "avg50": 2543.24,
+  "changed": false
+ },
+ {
+  "ts": "2026-10-26T01:14:44+00:00",
+  "coin": "Solana",
+  "state": "OUT",
+  "price": 101.25,
+  "avg50": 109.59,
+  "changed": false
  }
 ]
